@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graf váhy - Chránené</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+            padding: 40px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .login-container h2 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        
+        .login-container input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        
+        .login-container input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .login-container button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .login-container button:hover {
+            transform: translateY(-2px);
+        }
+        
+        .login-container button:active {
+            transform: translateY(0);
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .info-text {
+            color: #7f8c8d;
+            font-size: 12px;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        
+        .content {
+            display: none;
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            padding: 30px;
+        }
+        
+        .logout-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: rgba(231, 76, 60, 0.9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            z-index: 1000;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(231, 76, 60, 1);
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 600px;
+            margin-bottom: 30px;
+        }
+        
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+            font-size: 11px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        
+        .legend-text {
+            font-size: 10px;
+            line-height: 1.3;
+        }
+        
+        .hospitalization { border-left-color: #e74c3c; }
+        .endoscopy { border-left-color: #3498db; }
+        .diarrhea { border-left-color: #f39c12; }
+        .medication { border-left-color: #2ecc71; }
+        
+        .info-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 12px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            line-height: 1.6;
+        }
+        
+        .info-box strong {
+            font-size: 13px;
+            display: block;
+            margin-bottom: 8px;
+        }
+        
+        .info-box .highlight {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            font-size: 20px;
+            font-weight: 300;
+        }
+    </style>
+</head>
+<body>
+    <!-- Prihlasovací formulár -->
+    <div class="login-container" id="loginContainer">
+        <h2>🔒 Prístup k medicínskym údajom</h2>
+        <input type="password" id="passwordInput" placeholder="Zadajte heslo" autocomplete="current-password">
+        <button onclick="checkPassword()">Prihlásiť sa</button>
+        <div class="error-message" id="errorMessage">Nesprávne heslo!</div>
+        <div class="info-text">
+            💡 <strong>Ako nastaviť vlastné heslo:</strong><br>
+            1. Otvorte súbor v textovom editore<br>
+            2. Nájdite riadok "const PASSWORD_HASH"<br>
+            3. Nahraďte hodnotu vlastným heslom<br>
+            4. Uložte súbor
+        </div>
+    </div>
+
+    <!-- Hlavný obsah (skrytý) -->
+    <div class="content" id="mainContent">
+        <button class="logout-btn" onclick="logout()">Odhlásiť sa</button>
+        
+        <div class="container">
+            <h1>Graf váhy s medicínskymi udalosťami</h1>
+            
+            <div class="info-box">
+                <strong>🎯 Prelomový moment - TIPS operácia (29.04. - 02.05.2025)</strong>
+                Po operácii nastala výrazná zmena stolice:
+                <div class="highlight">
+                    ✓ Úprava stolice - prestali hnačky<br>
+                    ✓ Postupný nárast váhy z minima 58,3 kg (16.03.2025)<br>
+                    ✓ Stabilizácia váhy na úrovni 64-67 kg<br>
+                    ✓ Celkový nárast o viac ako 8 kg od minima
+                </div>
+            </div>
+            
+            <div class="chart-wrapper">
+                <canvas id="weightChart"></canvas>
+            </div>
+            
+            <div class="legend">
+                <div class="legend-item hospitalization">
+                    <div class="legend-color" style="background: #e74c3c;"></div>
+                    <div class="legend-text">
+                        <strong>Hospitalizácie:</strong><br>
+                        05.12.2024 - 13.12.2024<br>
+                        29.04.2025 - 02.05.2025 (TIPS operácia)
+                    </div>
+                </div>
+                
+                <div class="legend-item endoscopy">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <div class="legend-text">
+                        <strong>Endoskopia:</strong><br>
+                        20.11.2024
+                    </div>
+                </div>
+                
+                <div class="legend-item diarrhea">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <div class="legend-text">
+                        <strong>Hnačka:</strong><br>
+                        25.11.2024 (1x dnes zaregistrovaná)
+                    </div>
+                </div>
+                
+                <div class="legend-item medication">
+                    <div class="legend-color" style="background: #2ecc71;"></div>
+                    <div class="legend-text">
+                        <strong>Lieky:</strong><br>
+                        • 27.02.2025 - MEDOFLUCON 50mg na 7 dni<br>
+                        • 07.03.2025 - UNIFLOX 0.3% 4x denne 2 kvapky<br>
+                        • 08.03.2025 - MUCOSOLVAN Long Effect 1x denne<br>
+                        • 13.03.2025 - PANGROL 2000 3x2tbl denne<br>
+                        • 02.05.2025 - Normix 200mg 2x denne + Fraxiparine Inj 1x denne<br>
+                        • 17.11.2025 10:30 - DEVIT Direct 10 000 IU 6 ml (1x vitamin D)<br>
+                        • 02.12.2025 - DICYNONE 500 (1x použil, predpísané 3 balenia)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ====================================
+        // NASTAVENIE HESLA
+        // ====================================
+        // Zmeňte toto heslo na vaše vlastné!
+        // Aktuálne heslo je: zdravie
+        const PASSWORD_HASH = 'zdravie';
+        
+        // Funkcia na kontrolu hesla
+        function checkPassword() {
+            const input = document.getElementById('passwordInput').value;
+            const errorMsg = document.getElementById('errorMessage');
+            
+            if (input === PASSWORD_HASH) {
+                // Uloženie prihlásenia do session
+                sessionStorage.setItem('authenticated', 'true');
+                showContent();
+            } else {
+                errorMsg.style.display = 'block';
+                document.getElementById('passwordInput').value = '';
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        // Funkcia na zobrazenie obsahu
+        function showContent() {
+            document.getElementById('loginContainer').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            document.body.style.background = 'white';
+            initializeChart();
+        }
+        
+        // Funkcia na odhlásenie
+        function logout() {
+            sessionStorage.removeItem('authenticated');
+            location.reload();
+        }
+        
+        // Kontrola pri načítaní stránky
+        window.addEventListener('load', function() {
+            if (sessionStorage.getItem('authenticated') === 'true') {
+                showContent();
+            }
+        });
+        
+        // Enter pre prihlásenie
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('passwordInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    checkPassword();
+                }
+            });
+        });
+        
+        // ====================================
+        // GRAF - MEDICÍNSKE ÚDAJE
+        // ====================================
+        const data = [
+            {date: '03.11.2024', weight: 66.0, event: null},
+            {date: '10.11.2024', weight: 66.2, event: null},
+            {date: '17.11.2024', weight: 66.8, event: null},
+            {date: '20.11.2024', weight: null, event: 'Endoskopia'},
+            {date: '25.11.2024', weight: 65.6, event: 'Hnačka (1x dnes zaregistrovaná)'},
+            {date: '01.12.2024', weight: 64.1, event: null},
+            {date: '05.12.2024', weight: 64.3, event: 'HOSPITALIZÁCIA začiatok'},
+            {date: '13.12.2024', weight: 62.8, event: 'HOSPITALIZÁCIA koniec'},
+            {date: '16.12.2024', weight: 63.4, event: null},
+            {date: '19.12.2024', weight: 62.3, event: null},
+            {date: '22.12.2024', weight: 62.6, event: null},
+            {date: '27.12.2024', weight: 62.0, event: null},
+            {date: '29.12.2024', weight: 62.1, event: null},
+            {date: '05.01.2025', weight: 62.0, event: null},
+            {date: '12.01.2025', weight: 61.5, event: null},
+            {date: '19.01.2025', weight: 60.7, event: null},
+            {date: '26.01.2025', weight: 61.1, event: null},
+            {date: '02.02.2025', weight: 60.1, event: null},
+            {date: '09.02.2025', weight: 60.3, event: null},
+            {date: '16.02.2025', weight: 60.3, event: null},
+            {date: '23.02.2025', weight: 60.0, event: null},
+            {date: '27.02.2025', weight: null, event: 'MEDOFLUCON 50mg na 7 dni'},
+            {date: '02.03.2025', weight: 59.5, event: null},
+            {date: '07.03.2025', weight: null, event: 'UNIFLOX 0.3% 4x denne 2 kvapky'},
+            {date: '08.03.2025', weight: null, event: 'MUCOSOLVAN Long Effect 1x denne'},
+            {date: '09.03.2025', weight: 59.1, event: null},
+            {date: '13.03.2025', weight: null, event: 'PANGROL 2000 3x2tbl denne'},
+            {date: '16.03.2025', weight: 58.3, event: null},
+            {date: '23.03.2025', weight: 59.7, event: null},
+            {date: '30.03.2025', weight: 58.6, event: null},
+            {date: '06.04.2025', weight: 59.3, event: null},
+            {date: '13.04.2025', weight: 58.9, event: null},
+            {date: '21.04.2025', weight: 60.1, event: null},
+            {date: '27.04.2025', weight: 59.6, event: null},
+            {date: '29.04.2025', weight: null, event: 'HOSPITALIZÁCIA začiatok, TIPS operácia'},
+            {date: '02.05.2025', weight: null, event: 'HOSPITALIZÁCIA koniec, Normix + Fraxiparine'},
+            {date: '04.05.2025', weight: 58.4, event: null},
+            {date: '11.05.2025', weight: 60.1, event: null},
+            {date: '18.05.2025', weight: 62.0, event: null},
+            {date: '25.05.2025', weight: 62.1, event: null},
+            {date: '01.06.2025', weight: 62.4, event: null},
+            {date: '08.06.2025', weight: 64.2, event: null},
+            {date: '15.06.2025', weight: 64.5, event: null},
+            {date: '22.06.2025', weight: 64.8, event: null},
+            {date: '29.06.2025', weight: 64.0, event: null},
+            {date: '06.07.2025', weight: 63.9, event: null},
+            {date: '13.07.2025', weight: 62.8, event: null},
+            {date: '20.07.2025', weight: 64.4, event: null},
+            {date: '27.07.2025', weight: 64.2, event: null},
+            {date: '03.08.2025', weight: 63.4, event: null},
+            {date: '10.08.2025', weight: 64.7, event: null},
+            {date: '17.08.2025', weight: 64.4, event: null},
+            {date: '24.08.2025', weight: 63.9, event: null},
+            {date: '31.08.2025', weight: 64.7, event: null},
+            {date: '07.09.2025', weight: 64.6, event: null},
+            {date: '14.09.2025', weight: 64.6, event: null},
+            {date: '21.09.2025', weight: 65.9, event: null},
+            {date: '28.09.2025', weight: 65.4, event: null},
+            {date: '05.10.2025', weight: 65.7, event: null},
+            {date: '12.10.2025', weight: 66.0, event: null},
+            {date: '19.10.2025', weight: 65.1, event: null},
+            {date: '26.10.2025', weight: 65.8, event: null},
+            {date: '02.11.2025', weight: 66.3, event: null},
+            {date: '09.11.2025', weight: 65.4, event: null},
+            {date: '16.11.2025', weight: 66.6, event: null},
+            {date: '17.11.2025', weight: null, event: 'DEVIT Direct 10 000 IU 6 ml (10:30) 1x vitamin D'},
+            {date: '23.11.2025', weight: 65.3, event: null},
+            {date: '30.11.2025', weight: 66.5, event: null},
+            {date: '02.12.2025', weight: null, event: 'DICYNONE 500 (1x použil, predpísané 3 balenia)'},
+            {date: '07.12.2025', weight: 67.6, event: null},
+            {date: '14.12.2025', weight: 66.4, event: null},
+            {date: '21.12.2025', weight: 66.3, event: null},
+            {date: '28.12.2025', weight: 66.8, event: null}
+        ];
+
+        function getEventColor(event) {
+            if (!event) return '#34495e';
+            if (event.includes('HOSPITALIZÁCIA') || event.includes('TIPS')) return '#e74c3c';
+            if (event.includes('Endoskopia')) return '#3498db';
+            if (event.includes('Hnačka')) return '#f39c12';
+            if (event.includes('MEDOFLUCON') || event.includes('UNIFLOX') || 
+                event.includes('MUCOSOLVAN') || event.includes('PANGROL') || 
+                event.includes('Normix') || event.includes('Fraxiparine') ||
+                event.includes('DEVIT') || event.includes('DICYNONE')) return '#2ecc71';
+            return '#34495e';
+        }
+
+        function initializeChart() {
+            const weightData = data.filter(d => d.weight !== null);
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            
+            const chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.map(d => d.date),
+                    datasets: [
+                        {
+                            label: 'Váha (kg)',
+                            data: data.map(d => d.weight),
+                            borderColor: '#2c3e50',
+                            backgroundColor: 'rgba(44, 62, 80, 0.1)',
+                            borderWidth: 1.5,
+                            pointRadius: data.map(d => d.weight !== null ? 4 : 0),
+                            pointBackgroundColor: data.map(d => d.weight !== null ? '#2c3e50' : 'transparent'),
+                            pointBorderColor: data.map(d => d.weight !== null ? '#2c3e50' : 'transparent'),
+                            pointHoverRadius: 6,
+                            tension: 0.3,
+                            spanGaps: true,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#2c3e50',
+                            bodyColor: '#2c3e50',
+                            borderColor: '#e0e0e0',
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            titleFont: {
+                                size: 11,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 10
+                            },
+                            callbacks: {
+                                title: function(context) {
+                                    return context[0].label;
+                                },
+                                beforeLabel: function(context) {
+                                    const dataPoint = data[context.dataIndex];
+                                    if (dataPoint.weight !== null) {
+                                        return `Váha: ${dataPoint.weight} kg`;
+                                    }
+                                    return null;
+                                },
+                                label: function(context) {
+                                    const dataPoint = data[context.dataIndex];
+                                    if (dataPoint.event) {
+                                        return `Udalosť: ${dataPoint.event}`;
+                                    }
+                                    return null;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Dátum',
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: {
+                                    size: 7
+                                },
+                                autoSkip: false
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                lineWidth: 0.5
+                            }
+                        },
+                        y: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Váha (kg)',
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    size: 10
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                lineWidth: 0.5
+                            },
+                            min: 57,
+                            max: 68
+                        }
+                    }
+                },
+                plugins: [{
+                    afterDatasetsDraw: function(chart) {
+                        const ctx = chart.ctx;
+                        const chartArea = chart.chartArea;
+                        
+                        const tipsStartIndex = data.findIndex(d => d.date === '29.04.2025');
+                        if (tipsStartIndex !== -1) {
+                            const xStart = chart.scales.x.getPixelForValue(tipsStartIndex);
+                            
+                            ctx.save();
+                            ctx.fillStyle = 'rgba(155, 89, 182, 0.08)';
+                            ctx.fillRect(xStart, chartArea.top, chartArea.right - xStart, chartArea.bottom - chartArea.top);
+                            
+                            ctx.fillStyle = '#9b59b6';
+                            ctx.font = 'bold 10px Segoe UI';
+                            ctx.textAlign = 'left';
+                            ctx.fillText('↑ Po TIPS operácii: úprava stolice + nárast váhy', xStart + 10, chartArea.top + 20);
+                            ctx.restore();
+                        }
+                        
+                        data.forEach((dataPoint, index) => {
+                            if (dataPoint.event) {
+                                const x = chart.scales.x.getPixelForValue(index);
+                                const color = getEventColor(dataPoint.event);
+                                
+                                ctx.save();
+                                ctx.strokeStyle = color;
+                                ctx.lineWidth = 2;
+                                ctx.setLineDash([3, 3]);
+                                ctx.beginPath();
+                                ctx.moveTo(x, chartArea.top);
+                                ctx.lineTo(x, chartArea.bottom);
+                                ctx.stroke();
+                                ctx.restore();
+                                
+                                ctx.save();
+                                ctx.fillStyle = color;
+                                ctx.beginPath();
+                                ctx.arc(x, chartArea.top + 20, 4, 0, 2 * Math.PI);
+                                ctx.fill();
+                                ctx.restore();
+                                
+                                if (color === '#2ecc71') {
+                                    let drugName = '';
+                                    if (dataPoint.event.includes('MEDOFLUCON')) drugName = 'MEDOFLUCON';
+                                    else if (dataPoint.event.includes('UNIFLOX')) drugName = 'UNIFLOX';
+                                    else if (dataPoint.event.includes('MUCOSOLVAN')) drugName = 'MUCOSOLVAN';
+                                    else if (dataPoint.event.includes('PANGROL')) drugName = 'PANGROL';
+                                    else if (dataPoint.event.includes('Normix')) drugName = 'NORMIX+FRAX';
+                                    else if (dataPoint.event.includes('DEVIT')) drugName = 'DEVIT D';
+                                    else if (dataPoint.event.includes('DICYNONE')) drugName = 'DICYNONE';
+                                    
+                                    if (drugName) {
+                                        ctx.save();
+                                        ctx.translate(x + 3, chartArea.bottom - 5);
+                                        ctx.rotate(-Math.PI / 2);
+                                        ctx.fillStyle = color;
+                                        ctx.font = 'bold 8px Segoe UI';
+                                        ctx.textAlign = 'left';
+                                        ctx.fillText(drugName, 0, 0);
+                                        ctx.restore();
+                                    }
+                                }
+                            }
+                        });
+                        
+                        weightData.forEach((dataPoint) => {
+                            const dataIndex = data.findIndex(d => d.date === dataPoint.date);
+                            const x = chart.scales.x.getPixelForValue(dataIndex);
+                            const y = chart.scales.y.getPixelForValue(dataPoint.weight);
+                            
+                            ctx.save();
+                            ctx.fillStyle = '#2c3e50';
+                            ctx.font = '7px Segoe UI';
+                            ctx.textAlign = 'center';
+                            
+                            const text = `${dataPoint.weight}kg`;
+                            const textWidth = ctx.measureText(text).width;
+                            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                            ctx.fillRect(x - textWidth/2 - 2, y - 18, textWidth + 4, 10);
+                            
+                            ctx.fillStyle = '#2c3e50';
+                            ctx.fillText(text, x, y - 10);
+                            ctx.restore();
+                        });
+                        
+                        data.forEach((dataPoint, index) => {
+                            if (dataPoint.event) {
+                                const x = chart.scales.x.getPixelForValue(index);
+                                const color = getEventColor(dataPoint.event);
+                                let eventText = '';
+                                
+                                if (dataPoint.event.includes('Endoskopia')) {
+                                    eventText = 'ENDOSKOPIA';
+                                } else if (dataPoint.event.includes('Hnačka')) {
+                                    eventText = 'HNAČKA';
+                                } else if (dataPoint.event.includes('HOSPITALIZÁCIA')) {
+                                    if (dataPoint.event.includes('začiatok')) {
+                                        eventText = 'HOSPITALIZÁCIA ►';
+                                    } else if (dataPoint.event.includes('koniec')) {
+                                        eventText = '◄ HOSPITALIZÁCIA';
+                                    }
+                                } else if (dataPoint.event.includes('MEDOFLUCON') || 
+                                         dataPoint.event.includes('UNIFLOX') || 
+                                         dataPoint.event.includes('MUCOSOLVAN') || 
+                                         dataPoint.event.includes('PANGROL') || 
+                                         dataPoint.event.includes('Normix') ||
+                                         dataPoint.event.includes('DEVIT') ||
+                                         dataPoint.event.includes('DICYNONE')) {
+                                    eventText = 'LIEKY';
+                                }
+                                
+                                if (eventText) {
+                                    ctx.save();
+                                    ctx.fillStyle = color;
+                                    ctx.font = 'bold 8px Segoe UI';
+                                    ctx.textAlign =
