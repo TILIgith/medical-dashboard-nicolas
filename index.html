@@ -192,7 +192,6 @@
     </style>
 </head>
 <body>
-    <!-- Prihlasovací formulár -->
     <div class="login-container" id="loginContainer">
         <h2>🔒 Prístup k medicínskym údajom</h2>
         <input type="password" id="passwordInput" placeholder="Zadajte heslo" autocomplete="current-password">
@@ -207,7 +206,6 @@
         </div>
     </div>
 
-    <!-- Hlavný obsah (skrytý) -->
     <div class="content" id="mainContent">
         <button class="logout-btn" onclick="logout()">Odhlásiť sa</button>
         
@@ -273,20 +271,13 @@
     </div>
 
     <script>
-        // ====================================
-        // NASTAVENIE HESLA
-        // ====================================
-        // Zmeňte toto heslo na vaše vlastné!
-        // Aktuálne heslo je: zdravie
         const PASSWORD_HASH = 'zdravie';
         
-        // Funkcia na kontrolu hesla
         function checkPassword() {
             const input = document.getElementById('passwordInput').value;
             const errorMsg = document.getElementById('errorMessage');
             
             if (input === PASSWORD_HASH) {
-                // Uloženie prihlásenia do session
                 sessionStorage.setItem('authenticated', 'true');
                 showContent();
             } else {
@@ -298,7 +289,6 @@
             }
         }
         
-        // Funkcia na zobrazenie obsahu
         function showContent() {
             document.getElementById('loginContainer').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
@@ -306,31 +296,28 @@
             initializeChart();
         }
         
-        // Funkcia na odhlásenie
         function logout() {
             sessionStorage.removeItem('authenticated');
             location.reload();
         }
         
-        // Kontrola pri načítaní stránky
         window.addEventListener('load', function() {
             if (sessionStorage.getItem('authenticated') === 'true') {
                 showContent();
             }
         });
         
-        // Enter pre prihlásenie
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('passwordInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    checkPassword();
-                }
-            });
+            const passwordInput = document.getElementById('passwordInput');
+            if (passwordInput) {
+                passwordInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        checkPassword();
+                    }
+                });
+            }
         });
         
-        // ====================================
-        // GRAF - MEDICÍNSKE ÚDAJE
-        // ====================================
         const data = [
             {date: '03.11.2024', weight: 66.0, event: null},
             {date: '10.11.2024', weight: 66.2, event: null},
@@ -423,26 +410,24 @@
             const weightData = data.filter(d => d.weight !== null);
             const ctx = document.getElementById('weightChart').getContext('2d');
             
-            const chart = new Chart(ctx, {
+            new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: data.map(d => d.date),
-                    datasets: [
-                        {
-                            label: 'Váha (kg)',
-                            data: data.map(d => d.weight),
-                            borderColor: '#2c3e50',
-                            backgroundColor: 'rgba(44, 62, 80, 0.1)',
-                            borderWidth: 1.5,
-                            pointRadius: data.map(d => d.weight !== null ? 4 : 0),
-                            pointBackgroundColor: data.map(d => d.weight !== null ? '#2c3e50' : 'transparent'),
-                            pointBorderColor: data.map(d => d.weight !== null ? '#2c3e50' : 'transparent'),
-                            pointHoverRadius: 6,
-                            tension: 0.3,
-                            spanGaps: true,
-                            fill: false
-                        }
-                    ]
+                    datasets: [{
+                        label: 'Váha (kg)',
+                        data: data.map(d => d.weight),
+                        borderColor: '#2c3e50',
+                        backgroundColor: 'rgba(44, 62, 80, 0.1)',
+                        borderWidth: 1.5,
+                        pointRadius: data.map(d => d.weight !== null ? 4 : 0),
+                        pointBackgroundColor: data.map(d => d.weight !== null ? '#2c3e50' : 'transparent'),
+                        pointBorderColor: data.map(d => d.weight !== null ? '#2c3e50' : 'transparent'),
+                        pointHoverRadius: 6,
+                        tension: 0.3,
+                        spanGaps: true,
+                        fill: false
+                    }]
                 },
                 options: {
                     responsive: true,
@@ -476,14 +461,14 @@
                                 beforeLabel: function(context) {
                                     const dataPoint = data[context.dataIndex];
                                     if (dataPoint.weight !== null) {
-                                        return `Váha: ${dataPoint.weight} kg`;
+                                        return 'Váha: ' + dataPoint.weight + ' kg';
                                     }
                                     return null;
                                 },
                                 label: function(context) {
                                     const dataPoint = data[context.dataIndex];
                                     if (dataPoint.event) {
-                                        return `Udalosť: ${dataPoint.event}`;
+                                        return 'Udalosť: ' + dataPoint.event;
                                     }
                                     return null;
                                 }
@@ -612,7 +597,7 @@
                             ctx.font = '7px Segoe UI';
                             ctx.textAlign = 'center';
                             
-                            const text = `${dataPoint.weight}kg`;
+                            const text = dataPoint.weight + 'kg';
                             const textWidth = ctx.measureText(text).width;
                             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
                             ctx.fillRect(x - textWidth/2 - 2, y - 18, textWidth + 4, 10);
@@ -652,4 +637,22 @@
                                     ctx.save();
                                     ctx.fillStyle = color;
                                     ctx.font = 'bold 8px Segoe UI';
-                                    ctx.textAlign =
+                                    ctx.textAlign = 'center';
+                                    
+                                    const textWidth = ctx.measureText(eventText).width;
+                                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                                    ctx.fillRect(x - textWidth/2 - 4, chartArea.top + 30, textWidth + 8, 16);
+                                    
+                                    ctx.fillStyle = color;
+                                    ctx.fillText(eventText, x, chartArea.top + 42);
+                                    ctx.restore();
+                                }
+                            }
+                        });
+                    }
+                }]
+            });
+        }
+    </script>
+</body>
+</html>
